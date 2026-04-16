@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import Icon from "@/components/ui/icon";
 
+const SEND_EMAIL_URL = "https://functions.poehali.dev/c0baf944-e379-4c19-a4a8-8f11880b7370";
+
 const HERO_IMG = "https://cdn.poehali.dev/projects/498f0023-14bf-4b21-ade4-edf425fe86d4/files/e45f90a1-d078-4c02-b0c3-e61832afb334.jpg";
 const AUDIT_IMG = "https://cdn.poehali.dev/projects/498f0023-14bf-4b21-ade4-edf425fe86d4/files/a35556b2-032e-404c-a1fd-92297423f066.jpg";
 
@@ -66,10 +68,33 @@ export default function Index() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [heroLoaded, setHeroLoaded] = useState(false);
 
+  const [formName, setFormName] = useState("");
+  const [formPhone, setFormPhone] = useState("");
+  const [formMessage, setFormMessage] = useState("");
+  const [formStatus, setFormStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+
   useEffect(() => {
     const timer = setTimeout(() => setHeroLoaded(true), 80);
     return () => clearTimeout(timer);
   }, []);
+
+  const handleSubmit = async () => {
+    if (!formName.trim() || !formPhone.trim()) return;
+    setFormStatus("loading");
+    try {
+      await fetch(SEND_EMAIL_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: formName, phone: formPhone, message: formMessage }),
+      });
+      setFormStatus("success");
+      setFormName("");
+      setFormPhone("");
+      setFormMessage("");
+    } catch {
+      setFormStatus("error");
+    }
+  };
 
   const navItems = [
     { id: "home", label: "Главная" },
@@ -405,17 +430,62 @@ export default function Index() {
           <div className="p-8 rounded-2xl border" style={{ backgroundColor: "var(--dark-card)", borderColor: "var(--dark-border)" }}>
             <div className="font-heading text-2xl font-bold text-white mb-1">Оставить заявку</div>
             <p className="text-gray-400 text-sm mb-6">Проконсультируем, рассчитаем стоимость и организуем доставку</p>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <input type="text" placeholder="Ваше имя" className="px-4 py-3 rounded-lg text-white text-sm outline-none border focus:border-orange-500 transition-colors font-body" style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: "var(--dark-border)" }} />
-              <input type="tel" placeholder="Ваш телефон" className="px-4 py-3 rounded-lg text-white text-sm outline-none border focus:border-orange-500 transition-colors font-body" style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: "var(--dark-border)" }} />
-              <textarea placeholder="Опишите ваш запрос..." rows={4} className="sm:col-span-2 px-4 py-3 rounded-lg text-white text-sm outline-none border focus:border-orange-500 transition-colors resize-none font-body" style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: "var(--dark-border)" }} />
-              <div className="sm:col-span-2">
-                <button className="px-10 py-3.5 rounded font-heading font-semibold text-white tracking-wide transition-all duration-300 hover:scale-105 flex items-center gap-2" style={{ background: "linear-gradient(135deg, #ea580c, #dc2626)", boxShadow: "0 0 25px rgba(234,88,12,0.3)" }}>
-                  <Icon name="Send" size={16} />
-                  Отправить заявку
+
+            {formStatus === "success" ? (
+              <div className="flex flex-col items-center justify-center py-10 gap-4">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: "rgba(234,88,12,0.15)", border: "2px solid rgba(234,88,12,0.4)" }}>
+                  <Icon name="CheckCircle" size={32} style={{ color: "var(--fire-orange)" }} />
+                </div>
+                <div className="text-center">
+                  <div className="font-heading text-xl font-bold text-white mb-1">Заявка отправлена!</div>
+                  <p className="text-gray-400 text-sm">Мы свяжемся с вами в ближайшее время</p>
+                </div>
+                <button onClick={() => setFormStatus("idle")} className="text-sm font-heading tracking-wide" style={{ color: "var(--fire-orange)" }}>
+                  Отправить ещё одну
                 </button>
               </div>
-            </div>
+            ) : (
+              <div className="grid sm:grid-cols-2 gap-4">
+                <input
+                  type="text"
+                  placeholder="Ваше имя *"
+                  value={formName}
+                  onChange={e => setFormName(e.target.value)}
+                  className="px-4 py-3 rounded-lg text-white text-sm outline-none border focus:border-orange-500 transition-colors font-body"
+                  style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: "var(--dark-border)" }}
+                />
+                <input
+                  type="tel"
+                  placeholder="Ваш телефон *"
+                  value={formPhone}
+                  onChange={e => setFormPhone(e.target.value)}
+                  className="px-4 py-3 rounded-lg text-white text-sm outline-none border focus:border-orange-500 transition-colors font-body"
+                  style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: "var(--dark-border)" }}
+                />
+                <textarea
+                  placeholder="Опишите ваш запрос..."
+                  rows={4}
+                  value={formMessage}
+                  onChange={e => setFormMessage(e.target.value)}
+                  className="sm:col-span-2 px-4 py-3 rounded-lg text-white text-sm outline-none border focus:border-orange-500 transition-colors resize-none font-body"
+                  style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: "var(--dark-border)" }}
+                />
+                <div className="sm:col-span-2 flex items-center gap-4 flex-wrap">
+                  <button
+                    onClick={handleSubmit}
+                    disabled={formStatus === "loading" || !formName.trim() || !formPhone.trim()}
+                    className="px-10 py-3.5 rounded font-heading font-semibold text-white tracking-wide transition-all duration-300 hover:scale-105 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                    style={{ background: "linear-gradient(135deg, #ea580c, #dc2626)", boxShadow: "0 0 25px rgba(234,88,12,0.3)" }}
+                  >
+                    <Icon name={formStatus === "loading" ? "Loader" : "Send"} size={16} className={formStatus === "loading" ? "animate-spin" : ""} />
+                    {formStatus === "loading" ? "Отправляем..." : "Отправить заявку"}
+                  </button>
+                  {formStatus === "error" && (
+                    <span className="text-sm text-red-400">Ошибка отправки. Позвоните нам напрямую.</span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </AnimSection>
